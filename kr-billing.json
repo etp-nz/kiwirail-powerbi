@@ -1,0 +1,42 @@
+DEV:
+
+let
+    Source = AzureStorage.Blobs("dvauebillingsto"),
+    monthly1 = Source{[Name="monthly"]}[Data],
+    #"Filtered Hidden Files1" = Table.SelectRows(monthly1, each [Attributes]?[Hidden]? <> true),
+    #"Invoke Custom Function1" = Table.AddColumn(#"Filtered Hidden Files1", "Transform File", each #"Transform File"([Content])),
+    #"Renamed Columns1" = Table.RenameColumns(#"Invoke Custom Function1", {"Name", "Source.Name"}),
+    #"Removed Other Columns1" = Table.SelectColumns(#"Renamed Columns1", {"Source.Name", "Transform File"}),
+    #"Expanded Table Column1" = Table.ExpandTableColumn(#"Removed Other Columns1", "Transform File", Table.ColumnNames(#"Transform File"(#"Sample File"))),
+    #"Changed Type" = Table.TransformColumnTypes(#"Expanded Table Column1",{{"Source.Name", type text}, {"DepartmentName", type text}, {"AccountName", type text}, {"AccountOwnerId", type text}, {"SubscriptionGuid", type text}, {"SubscriptionName", type text}, {"ResourceGroup", type text}, {"ResourceLocation", type text}, {"AvailabilityZone", type any}, {"UsageDateTime", type date}, {"ProductName", type text}, {"MeterCategory", type text}, {"MeterSubcategory", type text}, {"MeterId", type text}, {"MeterName", type text}, {"MeterRegion", type text}, {"UnitOfMeasure", type text}, {"UsageQuantity", type number}, {"ResourceRate", type number}, {"PreTaxCost", type number}, {"CostCenter", Int64.Type}, {"ConsumedService", type text}, {"ResourceType", type text}, {"InstanceId", type text}, {"Tags", type text}, {"OfferId", type text}, {"AdditionalInfo", type text}, {"ServiceInfo1", type any}, {"ServiceInfo2", type text}, {"Currency", type text}}),
+    #"Added Custom" = Table.AddColumn(#"Changed Type", "TagsJson", each "{"&[Tags]&"}"),
+    #"Parsed JSON" = Table.TransformColumns(#"Added Custom",{{"TagsJson", Json.Document}}),
+    #"Expanded TagsJson" = Table.ExpandRecordColumn(#"Parsed JSON", "TagsJson", {"location", "application", "environment"}, {"TagsJson.location", "Application", "TagsJson.environment"}),
+    #"Split Column by Delimiter" = Table.SplitColumn(#"Expanded TagsJson", "InstanceId", Splitter.SplitTextByEachDelimiter({"/"}, QuoteStyle.None, true), {"InstanceId.1", "InstanceId.2"}),
+    #"Changed Type1" = Table.TransformColumnTypes(#"Split Column by Delimiter",{{"InstanceId.1", type text}, {"InstanceId.2", type text}}),
+    #"Renamed Columns" = Table.RenameColumns(#"Changed Type1",{{"InstanceId.2", "ResourceId"}})
+in
+    #"Renamed Columns"
+
+
+PROD:
+
+let
+    Source = AzureStorage.Blobs("ssauebillingsto"),
+    monthly1 = Source{[Name="monthly"]}[Data],
+    #"Filtered Hidden Files1" = Table.SelectRows(monthly1, each [Attributes]?[Hidden]? <> true),
+    #"Invoke Custom Function1" = Table.AddColumn(#"Filtered Hidden Files1", "Transform File (2)", each #"Transform File (2)"([Content])),
+    #"Renamed Columns1" = Table.RenameColumns(#"Invoke Custom Function1", {"Name", "Source.Name"}),
+    #"Removed Other Columns1" = Table.SelectColumns(#"Renamed Columns1", {"Source.Name", "Transform File (2)"}),
+    #"Expanded Table Column1" = Table.ExpandTableColumn(#"Removed Other Columns1", "Transform File (2)", Table.ColumnNames(#"Transform File (2)"(#"Sample File (2)"))),
+    #"Changed Type" = Table.TransformColumnTypes(#"Expanded Table Column1",{{"Source.Name", type text}, {"DepartmentName", type any}, {"AccountName", type text}, {"AccountOwnerId", type text}, {"SubscriptionGuid", type text}, {"SubscriptionName", type text}, {"ResourceGroup", type text}, {"ResourceLocation", type text}, {"AvailabilityZone", type any}, {"UsageDateTime", type date}, {"ProductName", type text}, {"MeterCategory", type text}, {"MeterSubcategory", type text}, {"MeterId", type text}, {"MeterName", type text}, {"MeterRegion", type text}, {"UnitOfMeasure", type text}, {"UsageQuantity", type number}, {"ResourceRate", type number}, {"PreTaxCost", type number}, {"CostCenter", type any}, {"ConsumedService", type text}, {"ResourceType", type text}, {"InstanceId", type text}, {"Tags", type text}, {"OfferId", type text}, {"AdditionalInfo", type text}, {"ServiceInfo1", type any}, {"ServiceInfo2", type text}, {"Currency", type text}}),
+    #"Added Custom" = Table.AddColumn(#"Changed Type", "Custom", each "{"&[Tags]&"}"),
+    #"Renamed Columns" = Table.RenameColumns(#"Added Custom",{{"Custom", "TagsJson"}}),
+    #"Parsed JSON" = Table.TransformColumns(#"Renamed Columns",{{"TagsJson", Json.Document}}),
+    #"Expanded TagsJson" = Table.ExpandRecordColumn(#"Parsed JSON", "TagsJson", {"location", "application", "environment", "Creator", "Owner"}, {"TagsJson.location", "TagsJson.application", "TagsJson.environment", "TagsJson.Creator", "TagsJson.Owner"}),
+    #"Renamed Columns2" = Table.RenameColumns(#"Expanded TagsJson",{{"TagsJson.application", "Application"}}),
+    #"Split Column by Delimiter" = Table.SplitColumn(#"Renamed Columns2", "InstanceId", Splitter.SplitTextByEachDelimiter({"/"}, QuoteStyle.Csv, true), {"InstanceId.1", "InstanceId.2"}),
+    #"Changed Type1" = Table.TransformColumnTypes(#"Split Column by Delimiter",{{"InstanceId.1", type text}, {"InstanceId.2", type text}}),
+    #"Renamed Columns3" = Table.RenameColumns(#"Changed Type1",{{"InstanceId.2", "ResourceId"}})
+in
+    #"Renamed Columns3"
